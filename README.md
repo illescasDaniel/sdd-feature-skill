@@ -1,7 +1,8 @@
 # sdd-feature
 
 Spec-Driven Development for AI coding agents, with human approval gates. The agent does not jump straight from "add
-feature X" to a pile of code: it draws a wireframe, writes a spec with you, defines the interfaces, writes the tests,
+feature X" to a pile of code: it designs the feature first (a wireframe for screens, a system design with Mermaid
+diagrams for backend changes, both for fullstack), writes a spec with you, defines the interfaces, writes the tests,
 implements, and then hands the result to an independent reviewer that grades it against the spec. You approve each
 step in chat before the next one starts.
 
@@ -12,26 +13,56 @@ checker script), so it works in Claude Code, Cursor and any other agent that loa
 
 | Phase | Deliverable | Gate |
 |-------|-------------|------|
-| **0 — Design** | `wireframes/<screen>.html`: one self-contained HTML/CSS file you open in a browser | **Stop.** You approve the design. |
-| **1 — Spec** | `specs/<feature>/SPEC.md`: four agreed design decisions, then Given/When/Then scenarios and an Out of scope list | **Stop.** You approve the spec. |
+| **0 — Design** | `wireframes/<screen>.html` (screens) and/or `design/<feature>/DESIGN.md` with Mermaid diagrams (APIs, data, jobs, services) | **Stop.** You approve the design. |
+| **1 — Spec** | `specs/<feature>/SPEC.md`: five agreed design decisions, then Given/When/Then scenarios and an Out of scope list | **Stop.** You approve the spec. |
 | **2 — Architecture** | Domain types and interfaces (ports) only, no adapters or UI | **Stop.** You approve the shape. |
 | **3 — Tests** | One fast test per scenario, `test_given_…_when_…_then_…` | Run them. |
-| **4 — Implementation** | Use cases, adapters, UI until the tests and the quality gate pass, matching the wireframe | Until green. |
+| **4 — Implementation** | Use cases, adapters, UI until the tests and the quality gate pass, matching the approved design | Until green. |
 | **5 — Grade** | A fresh, read-only `code-grader` subagent scores the branch against the spec | Automatic: fix FAILs (max 2 rounds), show you the scorecard. |
 
-The four design decisions agreed at the start of Phase 1 are what turn a feature list into a real design:
+The five design decisions agreed at the start of Phase 1 are what turn a feature list into a real design:
 
 - **Success criteria**: what "done" means beyond the scenarios (no data loss, idempotent re-run, …).
 - **Failure handling**: what can fail, what the user sees, retry / skip / resume.
 - **Performance & resource budget**: latency, memory, disk, network, size limits.
 - **Trust boundary**: which input is untrusted and where it gets validated.
+- **Compatibility & rollout**: who depends on what changes, versioning, migration order, feature flag, rollback.
 
 Every failure-handling and trust-boundary decision must have at least one scenario, so it ends up tested, not just written down.
 
+## Frontend, backend and fullstack
+
+Phase 0 has two tracks, and the agent picks them from what the feature touches:
+
+- **UI track**: a self-contained HTML wireframe with the real copy and every state (empty, loading, error, success).
+- **System track**: a `DESIGN.md` whose diagrams are Mermaid code blocks, so they diff in review and render on GitHub,
+  GitLab and most IDEs with nothing to install. It covers, as needed:
+  - a **sequence diagram** of the main flow, with each failure branch labelled `F1`, `F2`, …;
+  - a **components diagram** of the system after the change, with added, changed and removed parts in different colours;
+  - an **ER diagram** plus the migration plan (compatibility, order, backfill, rollback);
+  - a **state diagram** for entities with a lifecycle;
+  - **contracts**: real request/response examples, error codes, idempotency, events.
+
+A fullstack feature gets both, approved at one gate, plus a **contract seam** table that maps every wireframe state to
+the API call and response that produce it. UI/backend mismatches show up there, before any code is written.
+
+The failure branches trace all the way through: every `F<n>` needs a scenario in the spec (the checker fails without
+one), each scenario needs a test, and the grader checks the schema, endpoints, error codes and dependencies against the
+approved diagrams.
+
+`scripts/design_preview.py` turns a `DESIGN.md` into a review-only `preview.html` that renders the diagrams and shows
+Mermaid syntax errors in place. It loads pinned Mermaid and Markdown builds from jsDelivr, so it needs network access;
+you may want to add `design/*/preview.html` to your `.gitignore`. With `--check` it first validates every diagram
+headlessly (pinned `@mermaid-js/mermaid-cli` through `npx`, so it needs Node; the first run downloads Chromium via
+puppeteer), so the agent fixes syntax errors before you see them. It exits 1 on an invalid diagram and 2 when it cannot
+check, in which case the agent tells you the diagrams are unchecked. Prefer PlantUML or another format? Say so in your
+`AGENTS.md`; the skill follows the project's settings (the preview script only renders Mermaid).
+
 ## Why it is so useful
 
-- **You see the feature before it exists.** A wireframe costs the agent a minute and you a glance. Catching "no, the
-  button goes there" at Phase 0 is far cheaper than after the backend, the tests and the UI have been built around it.
+- **You see the feature before it exists.** A wireframe or a sequence diagram costs the agent a minute and you a
+  glance. Catching "no, the button goes there" or "that should be a background job" at Phase 0 is far cheaper than
+  after the code and the tests have been built around it.
 - **The agent stops guessing at the hard parts.** Without a spec, an agent invents error handling, limits and
   security on the fly, differently each time. Here those four decisions are proposed, discussed and approved before any
   code, and then each one is traced to a scenario and a test.
@@ -53,10 +84,12 @@ caused problems.
 
 ```
 skills/sdd-feature/
-  SKILL.md               the workflow and gates the agent follows
-  templates/SPEC.md      spec skeleton (Metadata, Design decisions, scenarios, Out of scope)
-  agents/code-grader.md  the Phase 5 reviewer, as a Claude Code subagent definition
-  scripts/spec_check.py  structural spec checks (stdlib Python, any project language)
+  SKILL.md                  the workflow and gates the agent follows
+  templates/SPEC.md         spec skeleton (Metadata, Design decisions, scenarios, Out of scope)
+  templates/DESIGN.md       system design skeleton with example Mermaid diagrams
+  agents/code-grader.md     the Phase 5 reviewer, as a Claude Code subagent definition
+  scripts/spec_check.py     structural spec checks (stdlib Python, any project language)
+  scripts/design_preview.py checks DESIGN.md diagrams (--check), renders a review-only HTML page
 ```
 
 ## Install
@@ -100,7 +133,8 @@ implementations instead of grepping.
 ### Spec checks in CI (optional)
 
 `spec_check.py` has no dependencies, so you can run it in CI. Older specs written before you adopted the design
-decisions will fail it, so either retrofit them when next touched or check only new and changed specs:
+decisions will fail it, so either retrofit them when next touched or check only new and changed specs. A missing
+Compatibility & rollout decision is only a warning, so specs written before it was added keep passing:
 
 ```bash
 python3 .claude/skills/sdd-feature/scripts/spec_check.py specs/*/SPEC.md
@@ -119,15 +153,15 @@ Every feature or user-facing change goes through these phases. Full workflow: th
 
 | Phase | Deliverable | Gate |
 |-------|-------------|------|
-| **0 — Design** | `wireframes/<screen>.html` (self-contained HTML/CSS) | **Stop.** Ask for design approval. |
-| **1 — Spec** | `specs/<feature>/SPEC.md`: agreed Design decisions (success criteria, failure handling, performance/resource budget, trust boundary), BDD scenarios, Out of scope | **Stop.** Ask for spec approval. |
+| **0 — Design** | `wireframes/<screen>.html` (self-contained HTML/CSS) for UI, `design/<feature>/DESIGN.md` (Mermaid diagrams) for APIs, data, jobs and services; both for fullstack | **Stop.** Ask for design approval. |
+| **1 — Spec** | `specs/<feature>/SPEC.md`: agreed Design decisions (success criteria, failure handling, performance/resource budget, trust boundary, compatibility & rollout), BDD scenarios, Out of scope | **Stop.** Ask for spec approval. |
 | **2 — Architecture** | Domain types and interfaces only | **Stop.** Ask for approval before tests/adapters. |
 | **3 — Tests** | Unit tests from the BDD scenarios | Run them. |
-| **4 — Implementation** | Use cases, adapters, UI | Until tests pass; must match the approved wireframe. |
+| **4 — Implementation** | Use cases, adapters, UI | Until tests pass; must match the approved wireframe and design. |
 | **5 — Grade** | Read-only `code-grader` subagent scores the branch against the spec | Automatic: fix FAILs, max 2 rounds, show the scorecard. |
 
 - **Never skip a gate.** "Implement the plan", "complete all todos", an attached plan file or plan-mode approval is
-  **not** design or spec approval; approval must be explicit, in chat. One gate per approval: after the wireframe, end
+  **not** design or spec approval; approval must be explicit, in chat. One gate per approval: after the design, end
   the turn and wait.
 - If implementation reveals a spec flaw, rewrite the spec, get re-approval, then continue. Don't patch around a bad spec.
 - No production code before spec approval. Allowed before it: `wireframes/`, `specs/` and docs.
@@ -140,8 +174,10 @@ the project's settings over its defaults.
 ## Use it
 
 Ask your agent for a feature: *"add a dark mode toggle to settings"*. It should come back with a wireframe and a
-question, not code. Reply *"wireframe approved"* (or what to change), then review the proposed design decisions and the
-spec, then the interfaces. From there it writes the tests, implements, gets graded, and shows you the scorecard.
+question, not code. For *"move CSV exports to a background job"* it comes back with a `DESIGN.md` (sequence, components
+and data diagrams) instead; for *"let users export their data from settings"*, with both. Reply *"design approved"*
+(or what to change), then review the proposed design decisions and the spec, then the interfaces. From there it writes
+the tests, implements, gets graded, and shows you the scorecard.
 
 ## Pairs well with
 
