@@ -9,6 +9,12 @@ Build features in gated phases: **design → spec → architecture → tests →
 three phases ends with a deliverable the user reviews and approves **in chat** before the next one starts. The approved
 spec is the source of truth: the code follows the spec, never the other way round.
 
+## When not to use this
+
+Bug fixes and small changes (a typo, a copy tweak, a one-line behavior fix) do not need the gates: fix them with a
+regression test. After two failed attempts at a bug, stop and do a root-cause analysis instead of guessing a third
+time. If a "small" change turns out to add or change a screen, API, data model, job or event, switch to this workflow.
+
 ## Project settings
 
 Read `AGENTS.md` / `CLAUDE.md` first. The project may override any of these defaults:
