@@ -1,9 +1,16 @@
 ---
 name: sdd-feature
-description: Run Spec-Driven Development with explicit human approval gates (design, spec, architecture, then tests and implementation, then an independent grade). Use when adding or changing a feature in a frontend, backend or fullstack project (a screen or flow, an API endpoint, a data model, a background job, an event or a service), writing a wireframe, system design or SPEC.md, or implementing from acceptance criteria.
+description: Run Spec-Driven Development with explicit human approval gates (design, spec, architecture, then tests and implementation, then an independent grade). Use when adding or changing a feature in a frontend, backend or fullstack project (a screen or flow, an API endpoint, a data model, a background job, an event or a service), writing a wireframe, system design or SPEC.md, or implementing from acceptance criteria. Not for bug fixes, typos or other small changes that add no screen, API, data model, job or event.
+license: MIT
+metadata:
+  author: Daniel Illescas Romero <illescas.daniel@protonmail.com>
+  version: "1.0.0"
+  tags: [spec-driven-development, specs, design, testing, workflow]
 ---
 
 # SDD feature workflow
+
+## Purpose
 
 Build features in gated phases: **design → spec → architecture → tests → implementation → grade**. Each of the first
 three phases ends with a deliverable the user reviews and approves **in chat** before the next one starts. The approved
@@ -178,3 +185,52 @@ Runs automatically once Phase 4 is green. It only reads code, so it is **not** a
    rounds**; if it still says NEEDS WORK, stop and report the remaining findings.
 3. If a finding shows the spec itself is wrong, follow the spec-flaw rule: rewrite the spec and get re-approval.
 4. Show the user the final scorecard verbatim (verdict, table, unresolved findings). The user makes the final call.
+
+## Scripts
+
+Standard library only. Run them from the project root as `python3 <skill-dir>/scripts/<name>.py …`.
+
+| Script | Purpose | Arguments | Exit codes |
+|--------|---------|-----------|------------|
+| `scripts/design_preview.py` | Write a review-only `preview.html` beside a `DESIGN.md`; with `--check`, first validate every Mermaid block with the pinned mermaid-cli | `<DESIGN.md> [--check] [-o <out.html>]` | 0 valid (or not checked), 1 an invalid diagram or missing file, 2 the check could not run |
+| `scripts/spec_check.py` | Structural checks of a `SPEC.md`: Metadata links resolve, design decisions answered, Given/When/Then in every scenario, a scenario for every `F<n>` | `<SPEC.md>… [--root <repo>]` | 0 no `FAIL` (`WARN` allowed), 1 any `FAIL` |
+
+## Examples
+
+"Add CSV export to the reports page" (fullstack): Phase 0 writes `wireframes/reports.html` and
+`design/csv-export/DESIGN.md`, checks the diagrams and ends the turn:
+
+```bash
+python3 .claude/skills/sdd-feature/scripts/design_preview.py design/csv-export/DESIGN.md --check
+xdg-open design/csv-export/preview.html
+```
+
+After "design approved", Phase 1 agrees the five decisions, writes the spec, checks it and ends the turn again:
+
+```bash
+python3 .claude/skills/sdd-feature/scripts/spec_check.py specs/csv-export/SPEC.md
+```
+
+## Requirements
+
+- Python 3 for the scripts (standard library only).
+- `--check`: Node.js with `npx` and network access; the first run downloads mermaid-cli and a Chromium build.
+- Viewing `preview.html`: a browser with network access (Mermaid and Markdown builds load from a CDN).
+- Phase 5: an agent that can spawn a fresh subagent (the `code-grader` definition is optional).
+
+## Limitations
+
+- The gates are instructions, not enforcement: nothing stops an agent that ignores them, so the user approves in chat.
+- `spec_check.py` checks the spec's structure, not whether the code satisfies it; that is the grader's judgement.
+- The grader is a model's review with `path:line` evidence, capped at two fix rounds; the user makes the final call.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `design_preview.py --check` prints `CANNOT CHECK` and exits 2 | No `npx`, no network, or Chromium could not start | Install Node.js or fix the network; otherwise tell the user at the gate that the diagrams are unchecked |
+| `FAIL … linked wireframe(s) not found` or `design(s) not found` | Metadata paths resolve from the git top level (or the current folder) | Fix the path, or pass `--root <repo>` |
+| `FAIL … failure path(s) F2 … have no scenario` | A design branch has no scenario naming it | Add a scenario with `(F2)` in its title, or fix the diagram |
+| `FAIL … Design decisions incomplete` | A decision is empty, or `N/A` without a real reason | Answer it, or write `N/A — <reason>` with a reason of a few words |
+| Diagrams in `preview.html` stay blank | The browser is offline or the CDN is blocked | Read the Mermaid blocks in `DESIGN.md`, or open the preview online |
+| The grader still says NEEDS WORK after two rounds | Findings remain that the fixes did not resolve | Stop and show the user the scorecard and remaining findings |

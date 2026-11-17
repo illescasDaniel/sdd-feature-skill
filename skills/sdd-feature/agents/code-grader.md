@@ -22,8 +22,8 @@ that change state (only `git diff/log/show/status`, the spec checker, and read-o
    you grade criteria 3, 4 and 7 against.
 2. If the `sdd-feature` skill's `scripts/spec_check.py` is available, run it on each spec and treat its `FAIL` lines as
    findings: `python3 <skill-dir>/scripts/spec_check.py <spec>` from the project root (`<skill-dir>` is the folder containing the
-   skill's `SKILL.md`, e.g. `.claude/skills/sdd-feature`). Also run any grading pre-check script the project
-   documents.
+   skill's `SKILL.md`, e.g. `.claude/skills/sdd-feature`). Also run the grading pre-check script the project
+   documents, if there is one.
 3. Read the spec fully (Metadata, Design decisions, Acceptance criteria, Out of scope), then
    `git diff <base>...HEAD` plus uncommitted changes (`git status`, `git diff`).
 4. Read what Metadata links: the wireframe if the diff touches production UI, and the system design

@@ -169,9 +169,9 @@ def check_diagrams(source: str, design: Path) -> int:
 	if not blocks:
 		print(f"PASS  {design}: no mermaid blocks to check")
 		return 0
-	npx = shutil.which("npx")
-	if npx is None:
-		print("CANNOT CHECK  npx not found on PATH (install Node.js); no diagram was validated")
+	npx_bin = shutil.which("npx")
+	if npx_bin is None:
+		print("CANNOT CHECK  `npx` was not found on PATH (install Node.js); no diagram was validated")
 		return 2
 	failures = 0
 	with tempfile.TemporaryDirectory() as tmp:
@@ -180,7 +180,7 @@ def check_diagrams(source: str, design: Path) -> int:
 		for index, (heading, line, code) in enumerate(blocks, 1):
 			source_file, svg = Path(tmp) / f"d{index}.mmd", Path(tmp) / f"d{index}.svg"
 			source_file.write_text(code, encoding="utf-8")
-			command = [npx, "-y", *(arg for package in CLI_PACKAGES for arg in ("-p", package)), "mmdc",
+			command = [npx_bin, "-y", *(arg for package in CLI_PACKAGES for arg in ("-p", package)), "mmdc",
 				"-p", str(config), "-i", str(source_file), "-o", str(svg), "-q"]
 			try:
 				result = subprocess.run(command, capture_output=True, text=True, timeout=CHECK_TIMEOUT_SECONDS, check=False)
