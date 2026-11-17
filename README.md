@@ -8,6 +8,8 @@ A structured feature workflow with human approval gates, tests and an independen
 
 ## How it works
 
+<img alt="SDD workflow: design, specification, architecture, build and review" src="assets/infographic.png" height="350">
+
 | Step | What happens |
 | --- | --- |
 | Design | Approve the wireframe or system design |
