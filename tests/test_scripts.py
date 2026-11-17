@@ -8,7 +8,7 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parents[1] / 'skills' / 'sdd-feature' / 'scripts'
 
 class ScriptTests(unittest.TestCase):
-    def test_preview_contains_escaped_design(self):
+    def test_preview_contains_design(self):
         with tempfile.TemporaryDirectory() as tmp:
             design = Path(tmp) / 'DESIGN.md'
             design.write_text('# My design\n\nA design for safe review.\n')

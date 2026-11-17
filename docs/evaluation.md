@@ -1,6 +1,6 @@
 # Evaluation
 
-Keyless recheck on 17 November 2026 using NVIDIA SkillEvaluator 0.9.0 and SkillSpector 2.13.3, without LLM review. The evaluated skill is the working tree after changes based on `050b792`. Its static quality result was **A, 93.5/100**: correctness 85, discoverability 95, reliability 100, efficiency 100. SkillSpector reported **low risk, 20, caution**. Tier 1 still fails on three intentional placeholder links in templates; they point to project-specific files once filled in.
+Keyless recheck on 17 November 2026 using NVIDIA SkillEvaluator 0.9.0 and SkillSpector 2.13.3, without LLM review. The evaluated skill is the working tree after changes based on `050b792`. The evaluated files match commit `e6927ad`, skill-directory Git tree `05a3dd4c92d775b251e2e7a2d3c47cfbf65df7cf` (excluding local Python caches). Its static quality result was **A, 93.5/100**: correctness 85, discoverability 95, reliability 100, efficiency 100. SkillSpector reported **low risk, 20, caution**. Tier 1 still fails on three intentional placeholder links in templates; they point to project-specific files once filled in.
 
 The placeholder Markdown links are deliberate templates for project-specific wireframes and design files; they resolve after the paths are filled in. The test does not report a Tier 1 pass.
 

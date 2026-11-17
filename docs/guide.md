@@ -50,7 +50,7 @@ The failure branches trace all the way through: every `F<n>` needs a scenario in
 one), each scenario needs a test, and the grader checks the schema, endpoints, error codes and dependencies against the
 approved diagrams.
 
-`scripts/design_preview.py` turns a `DESIGN.md` into a review-only `preview.html` that renders the diagrams and shows
+**Preview trusted designs only:** rendered Markdown is inserted as HTML without sanitization and may contain active browser content. Mermaid strict mode does not sanitize surrounding Markdown. `scripts/design_preview.py` turns a `DESIGN.md` into a review-only `preview.html` that renders the diagrams and shows
 Mermaid syntax errors in place. It loads pinned Mermaid and Markdown builds from jsDelivr, so it needs network access;
 you may want to add `design/*/preview.html` to your `.gitignore`. With `--check` it first validates every diagram
 headlessly (pinned `@mermaid-js/mermaid-cli` through `npx`, so it needs Node; the first run downloads Chromium via

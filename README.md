@@ -25,7 +25,7 @@ For manual installation, details and limitations, see the [guide](docs/guide.md)
 
 ## Requirements and limits
 
-Python 3 for checks; Node and network access for optional Mermaid validation. Agent instructions are conventions, not sandbox boundaries.
+Python 3 for checks; Node and network access for optional Mermaid validation. Agent instructions are conventions, not sandbox boundaries. Preview only trusted design files: rendered Markdown can contain active HTML and is not sanitized.
 
 ## Evaluation
 
